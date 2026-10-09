@@ -226,7 +226,7 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 	case "url.load", "save", "lyrics", "history", "history.clear":
 		return m.handleV2DeferredRequest(ctx, msg.Jobs, msg.JobID, request)
 	case "station.list":
-		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Stations: m.stationList()})
+		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Stations: stationsToIPC(m.stationList())})
 		return nil
 	case "station.play":
 		id := strings.TrimSpace(request.ID)
@@ -236,7 +236,7 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 			m.failV2Job(msg.Jobs, msg.JobID, v2NotFoundError())
 			return nil
 		}
-		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Station: station})
+		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Station: &ipc.StationInfo{ID: station.ID, Name: station.Name, URL: station.URL, Provider: station.Provider}})
 		return m.playStation(station)
 	case "history.play":
 		return m.handleV2HistoryPlay(msg.Jobs, msg.JobID, request)

@@ -78,6 +78,7 @@ func buildApp() *cli.Command {
 			pluginsCommand(),
 			playlistCommand(),
 			historyCommand(),
+			stationCommand(),
 			radioCommand(),
 			setupCommand(),
 			spotifyCommand(),
@@ -1270,6 +1271,58 @@ func remoteCommand() *cli.Command {
 							return err
 						}
 					}
+				},
+			},
+		},
+	}
+}
+
+// stationResult runs one station v2 operation and prints its result object
+// only, so scripts and the panel parse {"ok":...,"stations":[...]} directly.
+func stationResult(request ipc.V2Request) error {
+	response, err := sendV2(request)
+	if err != nil {
+		return err
+	}
+	if err := v2ResponseError(response); err != nil {
+		return err
+	}
+	if len(response.Result) > 0 {
+		fmt.Println(string(response.Result))
+		return nil
+	}
+	return printV2Response(response)
+}
+
+func stationCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "station",
+		Usage: "list or switch radio stations and live streams",
+		Description: "The station registry merges radio favorites, cached channel catalogs and\n" +
+			"the streams of the playback history. play switches the live stream without\n" +
+			"touching the rest of the player.",
+		Commands: []*cli.Command{
+			{
+				Name:  "list",
+				Usage: "print the stations known to the daemon",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return stationResult(ipc.V2Request{Method: "operation.submit", Operation: "station.list"})
+				},
+			},
+			{
+				Name:      "play",
+				Usage:     "switch the live stream to a station",
+				ArgsUsage: "<id|url>",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					arg := c.Args().First()
+					if arg == "" {
+						return fmt.Errorf("usage: cliamp station play <id|url>")
+					}
+					params, err := json.Marshal(map[string]string{"id": arg, "url": arg})
+					if err != nil {
+						return err
+					}
+					return stationResult(ipc.V2Request{Method: "operation.submit", Operation: "station.play", Params: params})
 				},
 			},
 		},
