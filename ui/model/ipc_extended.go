@@ -31,6 +31,7 @@ type ipcLibraryRequest struct {
 	Limit    int
 	Index    int
 	NewName  string
+	Key      string
 	Track    *ipc.TrackInfo
 	Tracks   []ipc.TrackInfo
 	Context  context.Context
@@ -227,8 +228,18 @@ func (m *Model) handleIPCLibrary(request ipcLibraryRequest) tea.Cmd {
 			_, catalog := entry.Provider.(provider.CatalogLoader)
 			items = append(items, ipc.ProviderInfo{Key: entry.Key, Name: entry.Name, Searchable: searchable, BrowseArtists: browseArtists, BrowseAlbums: browseAlbums, Catalog: catalog})
 		}
-		request.Reply <- ipc.Response{OK: true, Providers: items}
+		request.Reply <- ipc.Response{OK: true, Providers: items, ProviderStatuses: m.providerStatuses()}
 		return nil
+	}
+
+	// Fork additions: provider auth and switch. See CONTRACT.md. They live
+	// before the entry lookup because they address providers by key, not by
+	// the request's provider field.
+	if request.Op == "provider.auth" {
+		return m.ipcProviderAuth(request)
+	}
+	if request.Op == "provider.switch" {
+		return m.ipcProviderSwitch(request)
 	}
 
 	entry, ok := m.ipcProvider(request.Provider)
