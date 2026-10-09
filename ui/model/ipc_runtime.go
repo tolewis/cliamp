@@ -232,6 +232,10 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 		id := strings.TrimSpace(request.ID)
 		rawURL := strings.TrimSpace(request.URL)
 		station, ok := stationByLookup(m.stationList(), id, rawURL)
+		if !ok && (strings.HasPrefix(rawURL, "http://") || strings.HasPrefix(rawURL, "https://")) {
+			station = StationInfo{ID: stationID("url", rawURL), Name: stationNameForURL(rawURL), URL: rawURL, Provider: "url"}
+			ok = true
+		}
 		if !ok {
 			m.failV2Job(msg.Jobs, msg.JobID, v2NotFoundError())
 			return nil

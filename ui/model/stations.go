@@ -130,6 +130,25 @@ func (m Model) stationList() []StationInfo {
 			add(s.Name, s.URL, "radio")
 		}
 	}
+	// Built-in cliamp radio channels, even when that provider is not the
+	// active one and history is empty. A cold daemon still has stations.
+	for _, entry := range m.providers {
+		cp, ok := entry.Provider.(*radio.ChannelProvider)
+		if !ok || cp == nil {
+			continue
+		}
+		pls, err := cp.Playlists()
+		if err != nil {
+			continue
+		}
+		for _, pl := range pls {
+			tracks, err := cp.Tracks(pl.ID)
+			if err != nil || len(tracks) == 0 {
+				continue
+			}
+			add(tracks[0].Title, tracks[0].Path, "cliamp")
+		}
+	}
 	if m.historyStore != nil {
 		if entries, err := m.historyStore.Recent(0); err == nil {
 			for _, e := range entries {
