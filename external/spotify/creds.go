@@ -18,3 +18,10 @@ func CredsPath() (string, error) { return credsFile.Path() }
 // DeleteCreds removes the stored Spotify credentials file.
 // Returns true if a file was removed, false if it did not exist.
 func DeleteCreds() (bool, error) { return credsFile.Delete() }
+
+// HasStoredCredentials reports whether stored Spotify credentials exist and
+// carry a username. Used by the IPC provider status; no network calls.
+func HasStoredCredentials() bool {
+	creds, err := credsFile.Load()
+	return err == nil && creds.Username != "" && len(creds.Data) > 0
+}

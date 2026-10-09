@@ -29,8 +29,12 @@ type Request struct {
 	Tracks   []TrackInfo `json:"tracks,omitempty"`
 	Topics   []string    `json:"topics,omitempty"`
 	Play     bool        `json:"play,omitempty"`
-	ID       string      `json:"id,omitempty"`
-	URL      string      `json:"url,omitempty"`
+
+	// Fork additions. See CONTRACT.md: station.play matches on id or url,
+	// provider.auth/switch and history.play address things by key/index.
+	ID  string `json:"id,omitempty"`
+	URL string `json:"url,omitempty"`
+	Key string `json:"key,omitempty"`
 }
 
 // Response is the operation-specific data embedded in a successful V2 job.
@@ -69,6 +73,21 @@ type Response struct {
 	Station    *StationInfo   `json:"station,omitempty"`
 	Stations   []StationInfo  `json:"stations,omitempty"`
 	Devices    []DeviceInfo   `json:"devices,omitempty"`
+
+	// Fork additions. See CONTRACT.md: provider auth/switch state
+	// ("authed", "awaiting_browser", ...) surfaces here and in the
+	// per-provider statuses.
+	ProviderStatuses []ProviderStatus `json:"provider_statuses,omitempty"`
+}
+
+// ProviderStatus is the config, activation and auth state of one provider.
+type ProviderStatus struct {
+	Key        string `json:"key"`
+	Name       string `json:"name"`
+	Configured bool   `json:"configured"`
+	Active     bool   `json:"active"`
+	Authed     bool   `json:"authed"`
+	AuthURL    string `json:"auth_url,omitempty"`
 }
 
 // StationInfo is one row of the station registry served by station.list.

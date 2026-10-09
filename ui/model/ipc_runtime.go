@@ -238,6 +238,8 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 		}
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Station: station})
 		return m.playStation(station)
+	case "history.play":
+		return m.handleV2HistoryPlay(msg.Jobs, msg.JobID, request)
 	}
 	if isV2LibraryOperation(request.Cmd) {
 		return m.handleV2LibraryRequest(ctx, msg.Jobs, msg.JobID, request)
@@ -566,7 +568,7 @@ func (m *Model) handleV2LibraryRequest(ctx context.Context, jobs *ipc.JobStore, 
 	cmd := m.handleIPCLibrary(ipcLibraryRequest{
 		Op: request.Cmd, Provider: request.Provider, Playlist: request.Playlist, Query: request.Query,
 		Artist: request.Artist, Album: request.Album, Sort: request.Sort, Offset: request.Offset,
-		Limit: request.Limit, Index: request.Index, NewName: request.NewName, Track: request.Track, Tracks: request.Tracks, Context: ctx, Reply: reply,
+		Limit: request.Limit, Index: request.Index, NewName: request.NewName, Key: request.Key, Track: request.Track, Tracks: request.Tracks, Context: ctx, Reply: reply,
 	})
 	return tea.Batch(cmd, waitV2ResponseCmd(ctx, jobs, jobID, reply))
 }
