@@ -154,10 +154,22 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
 		return nil
 	case "next":
+		if track, _ := m.currentPlaybackTrack(); isStreamTrack(track) {
+			if next, ok := nextStreamStation(m.stationList(), track); ok {
+				m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
+				return m.playStation(next)
+			}
+		}
 		cmd := m.skipNext()
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
 		return cmd
 	case "prev":
+		if track, _ := m.currentPlaybackTrack(); isStreamTrack(track) {
+			if prev, ok := prevStreamStation(m.stationList(), track); ok {
+				m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
+				return m.playStation(prev)
+			}
+		}
 		cmd := m.skipPrev()
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
 		return cmd
@@ -213,6 +225,19 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 		return m.handleV2LibraryRequest(ctx, msg.Jobs, msg.JobID, request)
 	case "url.load", "save", "lyrics", "history", "history.clear":
 		return m.handleV2DeferredRequest(ctx, msg.Jobs, msg.JobID, request)
+	case "station.list":
+		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Stations: m.stationList()})
+		return nil
+	case "station.play":
+		id := strings.TrimSpace(request.ID)
+		rawURL := strings.TrimSpace(request.URL)
+		station, ok := stationByLookup(m.stationList(), id, rawURL)
+		if !ok {
+			m.failV2Job(msg.Jobs, msg.JobID, v2NotFoundError())
+			return nil
+		}
+		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Station: station})
+		return m.playStation(station)
 	}
 	if isV2LibraryOperation(request.Cmd) {
 		return m.handleV2LibraryRequest(ctx, msg.Jobs, msg.JobID, request)

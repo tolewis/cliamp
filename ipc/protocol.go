@@ -29,6 +29,8 @@ type Request struct {
 	Tracks   []TrackInfo `json:"tracks,omitempty"`
 	Topics   []string    `json:"topics,omitempty"`
 	Play     bool        `json:"play,omitempty"`
+	ID       string      `json:"id,omitempty"`
+	URL      string      `json:"url,omitempty"`
 }
 
 // Response is the operation-specific data embedded in a successful V2 job.
@@ -64,7 +66,17 @@ type Response struct {
 	Sorts      []SortInfo     `json:"sorts,omitempty"`
 	Lyrics     []LyricLine    `json:"lyrics,omitempty"`
 	History    []HistoryInfo  `json:"history,omitempty"`
+	Station    *StationInfo   `json:"station,omitempty"`
+	Stations   []StationInfo  `json:"stations,omitempty"`
 	Devices    []DeviceInfo   `json:"devices,omitempty"`
+}
+
+// StationInfo is one row of the station registry served by station.list.
+type StationInfo struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Provider string `json:"provider"`
 }
 
 // ThemeInfo carries the active theme name and its resolved hex colors.
