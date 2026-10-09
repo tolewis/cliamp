@@ -154,10 +154,22 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
 		return nil
 	case "next":
+		if track, _ := m.currentPlaybackTrack(); isStreamTrack(track) {
+			if next, ok := nextStreamStation(m.stationList(), track); ok {
+				m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
+				return m.playStation(next)
+			}
+		}
 		cmd := m.skipNext()
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
 		return cmd
 	case "prev":
+		if track, _ := m.currentPlaybackTrack(); isStreamTrack(track) {
+			if prev, ok := prevStreamStation(m.stationList(), track); ok {
+				m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
+				return m.playStation(prev)
+			}
+		}
 		cmd := m.skipPrev()
 		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true})
 		return cmd
@@ -213,6 +225,21 @@ func (m *Model) handleV2Request(msg V2RequestMsg) tea.Cmd {
 		return m.handleV2LibraryRequest(ctx, msg.Jobs, msg.JobID, request)
 	case "url.load", "save", "lyrics", "history", "history.clear":
 		return m.handleV2DeferredRequest(ctx, msg.Jobs, msg.JobID, request)
+	case "station.list":
+		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Stations: stationsToIPC(m.stationList())})
+		return nil
+	case "station.play":
+		id := strings.TrimSpace(request.ID)
+		rawURL := strings.TrimSpace(request.URL)
+		station, ok := stationByLookup(m.stationList(), id, rawURL)
+		if !ok {
+			m.failV2Job(msg.Jobs, msg.JobID, v2NotFoundError())
+			return nil
+		}
+		m.completeV2Job(msg.Jobs, msg.JobID, ipc.Response{OK: true, Station: &ipc.StationInfo{ID: station.ID, Name: station.Name, URL: station.URL, Provider: station.Provider}})
+		return m.playStation(station)
+	case "history.play":
+		return m.handleV2HistoryPlay(msg.Jobs, msg.JobID, request)
 	}
 	if isV2LibraryOperation(request.Cmd) {
 		return m.handleV2LibraryRequest(ctx, msg.Jobs, msg.JobID, request)
@@ -541,7 +568,7 @@ func (m *Model) handleV2LibraryRequest(ctx context.Context, jobs *ipc.JobStore, 
 	cmd := m.handleIPCLibrary(ipcLibraryRequest{
 		Op: request.Cmd, Provider: request.Provider, Playlist: request.Playlist, Query: request.Query,
 		Artist: request.Artist, Album: request.Album, Sort: request.Sort, Offset: request.Offset,
-		Limit: request.Limit, Index: request.Index, NewName: request.NewName, Track: request.Track, Tracks: request.Tracks, Context: ctx, Reply: reply,
+		Limit: request.Limit, Index: request.Index, NewName: request.NewName, Key: request.Key, Track: request.Track, Tracks: request.Tracks, Context: ctx, Reply: reply,
 	})
 	return tea.Batch(cmd, waitV2ResponseCmd(ctx, jobs, jobID, reply))
 }

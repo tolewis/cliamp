@@ -359,6 +359,14 @@ func (p *Provider) AppendCatalog(stations []CatalogStation) {
 	}
 }
 
+// StationCatalog returns a copy of the cached Radio Browser stations. The
+// station registry reads it; an empty cache is not an error.
+func (p *Provider) StationCatalog() []CatalogStation {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]CatalogStation(nil), p.catalog...)
+}
+
 // ToggleFavorite toggles the favorite status of a catalog or favorite entry.
 // Returns (true, name) if added, (false, name) if removed.
 func (p *Provider) ToggleFavorite(id string) (added bool, name string, err error) {
