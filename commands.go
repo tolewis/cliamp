@@ -1287,11 +1287,32 @@ func stationResult(request ipc.V2Request) error {
 	if err := v2ResponseError(response); err != nil {
 		return err
 	}
-	if len(response.Result) > 0 {
-		fmt.Println(string(response.Result))
+	if response.Job != nil {
+		response, err = waitForV2Job(context.Background(), response.Job.ID)
+		if err != nil {
+			return err
+		}
+		if err := v2ResponseError(response); err != nil {
+			return err
+		}
+	}
+	if result := stationResultJSON(response); len(result) > 0 {
+		fmt.Println(string(result))
 		return nil
 	}
 	return printV2Response(response)
+}
+
+// stationResultJSON digs the operation payload out of the final response:
+// the inline result, else the finished job's result.
+func stationResultJSON(response ipc.V2Response) json.RawMessage {
+	if len(response.Result) > 0 {
+		return response.Result
+	}
+	if response.Job != nil && len(response.Job.Result) > 0 {
+		return response.Job.Result
+	}
+	return nil
 }
 
 func stationCommand() *cli.Command {
