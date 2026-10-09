@@ -137,16 +137,12 @@ func (m Model) stationList() []StationInfo {
 		if !ok || cp == nil {
 			continue
 		}
-		pls, err := cp.Playlists()
+		channels, err := cp.LiveStations()
 		if err != nil {
 			continue
 		}
-		for _, pl := range pls {
-			tracks, err := cp.Tracks(pl.ID)
-			if err != nil || len(tracks) == 0 {
-				continue
-			}
-			add(tracks[0].Title, tracks[0].Path, "cliamp")
+		for _, ch := range channels {
+			add(ch.Name, ch.Stream, "cliamp")
 		}
 	}
 	if m.historyStore != nil {

@@ -116,6 +116,11 @@ func (p *ChannelProvider) Tracks(id string) ([]playlist.Track, error) {
 	return tracks, nil
 }
 
+// LiveStations returns each channel live stream. It does not download song lists.
+func (p *ChannelProvider) LiveStations() ([]Channel, error) {
+	return p.loadedChannels()
+}
+
 // Refresh drops the channel list, so the next call downloads it again with
 // the current song counts. Implements playlist.Refresher.
 func (p *ChannelProvider) Refresh() {
