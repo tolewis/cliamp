@@ -59,10 +59,14 @@ func (p *SpotifyProvider) Playlists() ([]playlist.PlaylistInfo, error) {
 	}
 	p.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	userID := p.currentUserID(ctx)
+	// /v1/me is often rate-limited on the shared client id. Do not hold the
+	// playlist list behind it.
+	meCtx, meCancel := context.WithTimeout(ctx, 3*time.Second)
+	userID := p.currentUserID(meCtx)
+	meCancel()
 
 	var all []playlist.PlaylistInfo
 	offset := 0
