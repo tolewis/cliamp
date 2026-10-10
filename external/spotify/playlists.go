@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bjarneo/cliamp/applog"
 	"github.com/bjarneo/cliamp/playlist"
 )
 
@@ -67,30 +68,28 @@ func (p *SpotifyProvider) Playlists() ([]playlist.PlaylistInfo, error) {
 	offset := 0
 	limit := spotifyPlaylistPageSize
 
-	// List of Playlists only includes created playlists by the User.
-	// This doesn't include the 'Liked Songs' playlist.
-	resp, err := p.webAPI(ctx, "GET", "/v1/me/tracks", nil)
-	if err != nil {
-		return nil, fmt.Errorf("spotify: your music: %w", err)
+	// Liked Songs is optional. A rate limit on /v1/me/tracks must not hide
+	// the rest of the library. The panel waits on this call.
+	tracksCtx, tracksCancel := context.WithTimeout(ctx, 4*time.Second)
+	resp, tracksErr := p.webAPI(tracksCtx, "GET", "/v1/me/tracks", nil)
+	tracksCancel()
+	if tracksErr != nil {
+		applog.UserWarn("spotify: skipping Your Music: %v", tracksErr)
+	} else {
+		var saved struct {
+			Total int `json:"total"`
+		}
+		if err := decodeBody(resp, &saved); err != nil {
+			applog.UserWarn("spotify: skipping Your Music: %v", err)
+		} else {
+			all = append(all, playlist.PlaylistInfo{
+				ID:         savedTracksPlaylistID,
+				Name:       "Your Music",
+				TrackCount: saved.Total,
+				Section:    "Library",
+			})
+		}
 	}
-
-	var result struct {
-		Total int `json:"total"`
-	}
-	if err := decodeBody(resp, &result); err != nil {
-		return nil, fmt.Errorf("spotify: parse playlists: %w", err)
-	}
-
-	// Unfortunately, the Spotify API doesn't expose the localized display name.
-	// i.e. 'Liked Songs' or 'Lieblingssongs' etc.
-	// For the moment, "Your Music" must sufficice without adding a localization
-	// map.
-	all = append(all, playlist.PlaylistInfo{
-		ID:         savedTracksPlaylistID,
-		Name:       "Your Music",
-		TrackCount: result.Total,
-		Section:    "Library",
-	})
 
 	for {
 		query := url.Values{
